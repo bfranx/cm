@@ -15,6 +15,10 @@ function [fig,cb]=cm(imin,pixdim,direction,slice,varargin)
 %  sf           : scaling factor
 %  mycm         : colormap of choice, should be three-column matrix of RGB triplets (see example.m)
 %  mycbopt      : colorbar options, passed on to colorbar() 
+%
+% Output:
+%  fig          : graphical object handle of the rendered slice
+%  cb           : object handle for colorbar
 
 % Author: bfranx 
 % v0.1.0 (230725)
