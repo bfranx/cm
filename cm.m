@@ -13,6 +13,7 @@ function [fig,cb]=cm(imin,pixdim,direction,slice,varargin)
 %  mask         : mask (will crop out region if specified)
 %  limits       : vector of length 2 that specifies intensity range (default: 100%)
 %  sf           : scaling factor
+%  interp       : interpolation method (bilinear, bicubic or nearest)
 %  mycm         : colormap of choice, should be three-column matrix of RGB triplets (see example.m)
 %  mycbopt      : colorbar options, passed on to colorbar() 
 %
@@ -21,12 +22,13 @@ function [fig,cb]=cm(imin,pixdim,direction,slice,varargin)
 %  cb           : object handle for colorbar
 
 % Author: bfranx 
-% v0.1.0 (230725)
+% v0.2.0 (231101)
 
 slicevalidationFcn = @(x) (x > 0) && isnumeric(x) && isscalar(x);
 pixdimvalidationFcn = @(x) all(x > 0) && isnumeric(x) && isvector(x) && isequal(length(x),3);
 mycmvalidationFcn = @(x) ischar(x) || isnumeric(x);
-maskvalidationFcn = @(x) all(ismember(x,[0 1]),'all');
+interpvalidationFcn = @(x) ismember(x, {'nearest','bilinear','bicubic'});
+maskvalidationFcn = @(x) all(ismember(x(:),[0 1]));
 
 p = inputParser;
 p.KeepUnmatched = false;
@@ -38,6 +40,7 @@ addRequired(p,'slice', slicevalidationFcn)
 addParameter(p,'mask', [], maskvalidationFcn)
 addParameter(p,'limits', [], @isvector)
 addParameter(p,'sf', [], @isscalar)
+addParameter(p,'interp', [], interpvalidationFcn)
 addParameter(p,'mycm', [], mycmvalidationFcn)
 addParameter(p,'mycbopt', [], @isstring)
 
@@ -49,7 +52,10 @@ else
     limits = p.Results.limits;
 end
 
-if ~isempty(p.Results.mask) % crop image with mask 
+if ~isempty(p.Results.mask) % crop image with mask
+    if ~all(size(imin)==size(p.Results.mask))
+        error('Error. Image and mask dimensions do not match.')
+    end
     measurements = regionprops(p.Results.mask, 'BoundingBox');
     BB = [measurements.BoundingBox];
     
@@ -90,22 +96,21 @@ end
 
 sz=size(imslice);
 
-if mypixdim(1) ~= mypixdim(2) % make 2d slice isotropic
+if mypixdim(1) ~= mypixdim(2) % make 2d slice isotropic. TODO: make optional or remove it (user responsibility)
     targetpixdim = repmat(min(mypixdim),[1,2]); % use smallest pixdim as target pixdim
     targetsz = ceil((sz-1).*mypixdim./targetpixdim)+1;
-    imslice = imresize(imslice,targetsz);
+    imslice = imresize(imslice,targetsz, 'nearest');
 end
 
-if ~isempty(p.Results.sf)    
-    imslice = imresize(imslice, p.Results.sf, 'bicubic'); % TODO add option to change the interpolation method
-end 
+if ( ~isempty(p.Results.sf) && p.Results.sf>0 && isempty(p.Results.interp))
+    imslice = imresize(imslice, p.Results.sf, 'nearest');
+elseif ( ~isempty(p.Results.sf) && p.Results.sf>0 && ~isempty(p.Results.interp))
+    imslice = imresize(imslice, p.Results.sf, interp);
+end
 
 % set up display scene
 h = imshow(imslice, limits); 
 set(h,'AlphaData',~isnan(imslice)) % get white background if masking is enabled
-set(gcf,'WindowState','maximized') % maximize window
-set(gca, 'Color', 'none');
-set(gcf, 'Color', 'w');
 
 % apply colormap
 if isempty(p.Results.mycm)
@@ -113,13 +118,18 @@ if isempty(p.Results.mycm)
 else
     mycm=p.Results.mycm;
 end
+colormap(mycm);
 
 if ~isempty(p.Results.mycbopt)
     c=eval(p.Results.mycbopt); % set colorbar options supplied by user
-    colormap(mycm);
 end
 
 fig = ancestor(h,'figure'); % returns figure handle
-cb = ancestor(c,'Colorbar'); % returns colorbar handle for editing
+
+if ~isempty(p.Results.mycbopt)
+    cb = ancestor(c,'Colorbar'); % returns colorbar handle for editing
+else
+    cb = []; % if user asks for cb object but no cbopts have been provdided: return empty
+end
 
 return 
