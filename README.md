@@ -1,6 +1,6 @@
 # cm
 
-Version 0.1.0
+Version 0.2.0
 
 See usage example in example.m
 
@@ -24,7 +24,8 @@ Obligatory input:
 Optional input:   
 &nbsp;&nbsp;mask         : mask (will crop out region if specified)  
 &nbsp;&nbsp;limits       : vector of length 2 that specifies intensity range (default: 100)  
-&nbsp;&nbsp;sf           : scaling factor  
+&nbsp;&nbsp;sf           : scaling factor
+&nbsp;&nbsp;interp       : interpolation method that accompanies scaling ('bilinear', 'bicubic' or 'nearest')
 &nbsp;&nbsp;mycm         : colormap of choice, should be three-column matrix of RGB triplets (see example.m)  
 &nbsp;&nbsp;mycbopt      : colorbar options, passed on to colorbar()  
 
